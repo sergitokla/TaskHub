@@ -11,11 +11,10 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('tasks', function (Blueprint $table) {
-            $table->id(); // ID autoincremental
-            $table->string('title'); // Título de la tarea
-            $table->text('description')->nullable(); // Descripción (puede estar vacía)
-            $table->boolean('is_completed')->default(false); // Estado: ¿Hecha?
-            $table->timestamps(); // Crea 'created_at' y 'updated_at' automáticamente
+            $table->id();
+            $table->string('title');
+            $table->boolean('completed')->default(false);
+            $table->timestamps();
         });
     }
 

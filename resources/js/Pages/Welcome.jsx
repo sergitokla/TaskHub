@@ -1,7 +1,8 @@
-import { useState } from 'react'; //Estado de React
-import { Head } from '@inertiajs/react'; //Titulo de pestaña
+import { useForm, router } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
+import { useState } from 'react';
 
-//Componente para ver estadisticas (Total, Completas, Progreso)
+// Componente para ver estadísticas (Total, Completas, Progreso)
 const Stats = ({ total, completed, progress }) => (
     <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center">
@@ -19,15 +20,15 @@ const Stats = ({ total, completed, progress }) => (
     </div>
 );
 
-//Componente para una tarea individual con edicion
+// Componente para una tarea individual con edición
 const TaskItem = ({ task, onToggle, onEdit }) => {
-    const [isEditing, setIsEditing] = useState(false); //Estado para modo edicion
-    const [editValue, setEditValue] = useState(task.title); //Estado del texto editado
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState(task.title);
 
-    //Guarda los cambios al terminar de editar
+    // Guarda los cambios al terminar de editar
     const handleSave = () => {
         setIsEditing(false);
-        if (editValue.trim() !== "") {
+        if (editValue.trim() !== "" && editValue !== task.title) {
             onEdit(task.id, editValue);
         } else {
             setEditValue(task.title);
@@ -68,57 +69,48 @@ const TaskItem = ({ task, onToggle, onEdit }) => {
     );
 };
 
-//Componente principal de la aplicacion
-export default function Welcome() {
-    const [tasks, setTasks] = useState([]);
-    const [newTaskTitle, setNewTaskTitle] = useState("");
+// Componente principal de la aplicación
+export default function Welcome({ tasks = [] }) {
+    // useForm para el formulario de añadir tarea
+    const { data, setData, post, reset, processing } = useForm({
+        title: ''
+    });
 
-    //Calculos de las estadisticas
+    // Cálculos de las estadísticas
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(t => t.completed).length;
     const progressPercentage = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
-    //Añade una nueva tarea a la lista
+    // Añade una nueva tarea a la BD
     const handleAddTask = (e) => {
         e.preventDefault();
-        if (newTaskTitle.trim() === "") return;
+        if (data.title.trim() === "") return;
 
-        const newTask = {
-            id: Date.now(),
-            title: newTaskTitle,
-            completed: false
-        };
-
-        setTasks([...tasks, newTask]);
-        setNewTaskTitle("");
+        post('/tasks', {
+            preserveScroll: true,
+            onSuccess: () => reset()
+        });
     };
 
-    //Cambia una tarea entre completada/pendiente
+    // Cambia una tarea entre completada/pendiente
     const toggleTask = (id) => {
-        const updatedTasks = tasks.map(task => {
-            if (task.id === id) {
-                return { ...task, completed: !task.completed };
-            }
-            return task;
+        router.patch(`/tasks/${id}/toggle`, {}, {
+            preserveScroll: true
         });
-        setTasks(updatedTasks);
     };
 
-    //Actualiza el título de una tarea editada
+    // Actualiza el título de una tarea editada
     const editTask = (id, newTitle) => {
-        const updatedTasks = tasks.map(task => {
-            if (task.id === id) {
-                return { ...task, title: newTitle };
-            }
-            return task;
+        router.patch(`/tasks/${id}`, { title: newTitle }, {
+            preserveScroll: true
         });
-        setTasks(updatedTasks);
     };
 
-    //Elimina las tareas marcadas como completadas
+    // Elimina las tareas marcadas como completadas
     const clearCompleted = () => {
-        const remainingTasks = tasks.filter(task => !task.completed);
-        setTasks(remainingTasks);
+        router.delete('/tasks/completed', {
+            preserveScroll: true
+        });
     };
 
     return (
@@ -143,13 +135,15 @@ export default function Welcome() {
                         <input
                             type="text"
                             placeholder="¿Qué tienes que hacer?"
-                            value={newTaskTitle}
-                            onChange={(e) => setNewTaskTitle(e.target.value)}
+                            value={data.title}
+                            onChange={(e) => setData('title', e.target.value)}
+                            disabled={processing}
                             className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
                         />
                         <button
                             type="submit"
-                            className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors"
+                            disabled={processing}
+                            className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50"
                         >
                             Añadir
                         </button>
@@ -189,6 +183,3 @@ export default function Welcome() {
         </>
     );
 }
-
-
-
